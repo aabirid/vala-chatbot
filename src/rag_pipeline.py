@@ -21,8 +21,8 @@ def load_articles():
 def split_articles(articles):
     print("Splitting articles into chunks...")
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=50,
+        chunk_size=1000,
+        chunk_overlap=150,
         separators=["\n\n", "\n", ".", " "]
     )
     chunks = []
@@ -73,7 +73,7 @@ def load_vector_store(embeddings):
     print("Vector store loaded")
     return vector_store
 
-def query_vector_store(question,k=3):
+def query_vector_store(question,k=5):
     embeddings = load_embedding_model()
     vector_store = load_vector_store(embeddings)
     results = vector_store.similarity_search(question, k=k)

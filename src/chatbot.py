@@ -35,7 +35,7 @@ Réponse:"""
 
 def ask(question):
     print("Searching knowledge base...")
-    results = query_vector_store(question, k=3)
+    results = query_vector_store(question, k=5)
 
     if not results:
         return {
@@ -56,9 +56,6 @@ def ask(question):
             sources.append(source)
 
     context = "\n\n---\n\n".join(context_parts)
-    print(f"\n📋 Context being sent to LLM ({len(context)} chars):")
-    print(context[:300])
-    print("...")
 
     prompt = build_prompt()
     llm = load_llm()
