@@ -5,10 +5,12 @@ import './App.css'
 const API_URL = "http://localhost:8000"
 
 export default function App() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [messages, setMessages] = useState([
     {
       role: "bot",
-      text: "Bonjour! Je suis l'assistant support de Vala. Comment puis-je vous aider?",
+      text: "Bonjour et bienvenue chez Vala Creative Internet Solutions, comment puis-je vous aider?",
       sources: []
     }
   ])
@@ -18,7 +20,7 @@ export default function App() {
   
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  }, [messages, isOpen])
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return
@@ -32,15 +34,12 @@ export default function App() {
       const response = await axios.post('${API_URL}/chat', {
         question: input
       })
-      
-      const botMessage = {
+      setMessages(prev => [...prev, {
         role: "bot",
         text: response.data.answer,
         sources: response.data.sources
-      }
-      setMessages(prev => [...prev, botMessage])
-
-    } catch(error){
+      }])
+    } catch {
       setMessages(prev => [...prev, {
         role: "bot",
         text: "Désolé, une erreur s'est produite. Veuillez réessayer.",
@@ -59,68 +58,128 @@ export default function App() {
   }
 
   return (
-    <div className='app'>
-      {/* Header */}
-      <div className='header'>
-        <div>
-          <h1>Vala Chatbot</h1>
-        </div>
-      </div>
+    <div className="widget-container">
 
-      {/* Chat Window */}
-      <div className='chat-window'>
-        {messages.map((msg,i) => (
-          <div key={i} className={'message-row ${msg.role}'}>
-            <div className={'bubble ${msg.role}'}>
-              <p>{msg.text}</p>
-              {msg.sources && msg.sources.length > 0 && (
-                <div className='sources'>
-                  <p className='sources-title'>Sources:</p>
-                  {msg.sources.map((src, j) => (
-                    <a
-                     key={j}
-                     href={src.url}
-                     target="_blank"
-                     rel="noreferrer"
-                     className="source-link"
-                    >
-                      {src.title}
-                    </a>          
-                  ))}
-                </div>
-              )}
+      {/* ── Chat Window ── */}
+      {isOpen && (
+        <div className={`chat-box ${isExpanded ? "expanded" : ""}`}>
+
+          {/* Header */}
+          <div className="chat-header">
+            <div className="chat-header-left">
+              <div>
+                <div className="chat-title">Vala Support</div>
+                <div className="chat-subtitle">Répond en quelques secondes</div>
+              </div>
             </div>
-          </div>       
-        ))}
-
-      {/* Loading */}
-        {loading && (
-          <div className='message-row bot'>
-            <div className='bubble bot loading'>
-              <span></span>
-              <span></span>
-              <span></span>
+            <div className="chat-header-actions">
+              <button
+                className="icon-btn"
+                onClick={() => setIsExpanded(prev => !prev)}
+                title={isExpanded ? "Réduire" : "Agrandir"}
+              >
+                {isExpanded ? "⊡" : "⊞"}
+              </button>
+              <button
+                className="icon-btn"
+                onClick={() => setIsOpen(false)}
+                title="Fermer"
+              >
+                ✕
+              </button>
             </div>
           </div>
-        )}
 
-      {/* AutoScroll */}
-        <div ref={bottomRef} />
-      </div>
-      {/* Input Area */}
-      <div className='input-area'>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder='Posez votre question...'
-          rows={1}
-          disabled={loading}
-        />
-        <button onClick={sendMessage} disabled={loading || !input.trim()}>
-          {loading ? "..." : "Envoyer"}
-        </button>
-      </div>
+          {/* Messages */}
+          <div className="chat-messages">
+            {messages.map((msg, i) => (
+              <div key={i} className={`message-group ${msg.role}`}>
+
+                {msg.role === "bot"}
+
+                <div className="message-content">
+                  <div className={`bubble ${msg.role}`}>
+                    {msg.text}
+                  </div>
+
+                  {msg.sources && msg.sources.length > 0 && (
+                    <div className="sources">
+                      <div className="sources-label">Sources:</div>
+                      {msg.sources.map((src, j) => (
+                        <a
+                          key={j}
+                          href={src.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="source-link"
+                        >
+                          ↗ {src.title}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            ))}
+
+            {loading && (
+              <div className="message-group bot">
+                <div className="bubble bot typing">
+                  <span /><span /><span />
+                </div>
+              </div>
+            )}
+
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div className="chat-input-area">
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Écrivez votre message..."
+              rows={1}
+              disabled={loading}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={loading || !input.trim()}
+              className="send-btn"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Footer */}
+          <div className="chat-footer">
+            Propulsé par <strong>Vala AI</strong>
+          </div>
+
+        </div>
+      )}
+
+      {/* ── Floating Button ── */}
+      <button
+        className={`fab ${isOpen ? "fab-open" : ""}`}
+        onClick={() => setIsOpen(prev => !prev)}
+      >
+        {isOpen ? (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        ) : (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+          </svg>
+        )}
+      </button>
 
     </div>
   )
