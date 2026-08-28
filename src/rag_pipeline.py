@@ -5,6 +5,25 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
+# Global variable — model loaded once, reused every time
+_embedding_model = None
+
+def load_embedding_model():
+    global _embedding_model
+    
+    # If already loaded, return it immediately (no reload)
+    if _embedding_model is not None:
+        return _embedding_model
+    
+    print("🤖 Loading embedding model (first time only)...")
+    _embedding_model = HuggingFaceEmbeddings(
+        model_name="all-MiniLM-L6-v2",
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": True}
+    )
+    print("✅ Embedding model loaded")
+    return _embedding_model
+
 load_dotenv()
 
 SCRAPED_DATA_FILE = "scraped_data.json"
@@ -33,6 +52,8 @@ def split_articles(articles):
         article_chunks = text_splitter.split_text(full_text)
 
         for chunk in article_chunks:
+            if len(chunk.strip()) < 100:
+                continue
             chunks.append(chunk)
             metadatas.append({
                 "title": article["title"],
@@ -40,15 +61,6 @@ def split_articles(articles):
             })
     print(f"Created {len(chunks)} chunks from {len(articles)} articles")
     return chunks, metadatas
-
-def load_embedding_model():
-    print("Loading embedding model...")
-    embeddings = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2",
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True}        )
-    print("Embedding model loaded")
-    return embeddings
 
 def build_vector_store(chunks, metadatas, embeddings):
     print("Building ChromaDB vector store...")
@@ -76,8 +88,12 @@ def load_vector_store(embeddings):
 def query_vector_store(question,k=5):
     embeddings = load_embedding_model()
     vector_store = load_vector_store(embeddings)
-    results = vector_store.similarity_search(question, k=k)
-    return results
+    raw_results = vector_store.similarity_search(question, k=k * 3)
+    good_results = [
+        doc for doc in raw_results
+        if len(doc.page_content.strip()) > 100
+    ]
+    return good_results[:k]
 
 if __name__ == "__main__":
     print("Building RAG pipeline...")
