@@ -31,7 +31,7 @@ export default function App() {
     setLoading(true)
 
     try {
-      const response = await axios.post('${API_URL}/chat', {
+      const response = await axios.post(`${API_URL}/chat`, {
         question: input
       })
       setMessages(prev => [...prev, {
