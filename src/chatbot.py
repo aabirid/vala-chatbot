@@ -80,8 +80,17 @@ def ask(question: str) -> dict:
     })
     logger.info("Answer generated (%d sources)", len(sources))
 
+    answer_text = response.content.strip()
+
+    # If the LLM could not find relevant info, do not display misleading sources
+    if "Je n'ai pas trouvé d'information" in answer_text:
+        return {
+            "answer": answer_text,
+            "sources": []
+        }
+
     return {
-        "answer": response.content,
+        "answer": answer_text,
         "sources": sources
     }
 # ── Script entry-point (manual testing) ────────────────────────────────────

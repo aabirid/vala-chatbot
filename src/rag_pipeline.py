@@ -24,7 +24,7 @@ COLLECTION_NAME   = "vala_knowledgebase"
 EMBEDDING_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 # Minimum relevance score (0–1) for a chunk to be included in results
-RELEVANCE_THRESHOLD = 0.45
+RELEVANCE_THRESHOLD = 0.30
 
 # ── Module-level singletons ─────────────────────────────────────────────────
 _embedding_model = None

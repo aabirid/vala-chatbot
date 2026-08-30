@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+from contextlib import asynccontextmanager
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -10,7 +11,8 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from pydantic import BaseModel, Field
-from chatbot import ask
+from chatbot import ask, load_llm
+from rag_pipeline import load_embedding_model, load_vector_store
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,11 +23,25 @@ logger = logging.getLogger(__name__)
 # ── Rate limiter ────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
 
-# ── App ─────────────────────────────────────────────────────────────────────
+# ── App Lifespan (Pre-warm models on server boot) ───────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("⚡ Warming up embedding model, vector store, and LLM...")
+    try:
+        embeddings = load_embedding_model()
+        load_vector_store(embeddings)
+        load_llm()
+        logger.info("✅ All models warmed up and ready to serve requests!")
+    except Exception:
+        logger.exception("⚠️ Warmup failed, models will load on first request")
+    yield
+
+
 app = FastAPI(
     title="Vala Chatbot API",
     description="RAG-powered chatbot API for Vala knowledgebase",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.state.limiter = limiter
