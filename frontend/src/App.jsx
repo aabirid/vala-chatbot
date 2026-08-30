@@ -33,13 +33,36 @@ export default function App() {
   const [messages, setMessages] = useState([INITIAL_MESSAGE])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
+  const [serverStatus, setServerStatus] = useState('checking')
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
   const nextId = useRef(1)
 
+  // Check server health
+  const checkHealth = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_URL}/`, { timeout: 3000 })
+      if (res.data && res.data.status === "online") {
+        setServerStatus('online')
+      } else {
+        setServerStatus('offline')
+      }
+    } catch {
+      setServerStatus('offline')
+    }
+  }, [])
+
+  // Poll health when chat is open
+  useEffect(() => {
+    if (!isOpen) return
+    checkHealth()
+    const interval = setInterval(checkHealth, 10000)
+    return () => clearInterval(interval)
+  }, [isOpen, checkHealth])
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isOpen])
+  }, [messages, isOpen, loading])
 
   // Auto-grow the textarea as the user types
   useEffect(() => {
@@ -67,7 +90,7 @@ export default function App() {
     setLoading(true)
 
     try {
-      const response = await axios.post(`${API_URL}/chat`, { question })
+      const response = await axios.post(`${API_URL}/chat`, { question }, { timeout: 45000 })
       setMessages(prev => [...prev, {
         id: nextId.current++,
         role: "bot",
@@ -76,16 +99,23 @@ export default function App() {
         timestamp: new Date(),
         isError: false,
       }])
-    } catch {
+      setServerStatus('online')
+    } catch (err) {
+      const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout')
+      const errorMsg = isTimeout
+        ? "Le serveur prend du temps à répondre (initialisation en cours). Veuillez réessayer dans quelques secondes."
+        : "Désolé, une erreur s'est produite. Veuillez vérifier votre connexion ou réessayer."
+
       setMessages(prev => [...prev, {
         id: nextId.current++,
         role: "bot",
-        text: "Désolé, une erreur s'est produite. Veuillez réessayer.",
+        text: errorMsg,
         sources: [],
         timestamp: new Date(),
         isError: true,
         retryQuestion: question,
       }])
+      setServerStatus('offline')
     } finally {
       setLoading(false)
     }
@@ -121,8 +151,10 @@ export default function App() {
               <div>
                 <div className="chat-title">Vala Support</div>
                 <div className="chat-subtitle">
-                  <span className="status-dot" aria-hidden="true" />
-                  Répond en quelques secondes
+                  <span className={`status-dot ${serverStatus}`} aria-hidden="true" />
+                  {serverStatus === 'online' && "En ligne • Répond rapidement"}
+                  {serverStatus === 'checking' && "Connexion au serveur…"}
+                  {serverStatus === 'offline' && "Serveur indisponible"}
                 </div>
               </div>
             </div>
@@ -173,6 +205,13 @@ export default function App() {
               </button>
             </div>
           </div>
+
+          {/* Server Offline Alert Banner */}
+          {serverStatus === 'offline' && (
+            <div className="server-alert-banner">
+              ⚠️ Le serveur API ne répond pas.
+            </div>
+          )}
 
           {/* Messages */}
           <div className="chat-messages" role="log" aria-live="polite">
@@ -246,16 +285,16 @@ export default function App() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Écrivez votre message…"
+              placeholder={serverStatus === 'offline' ? "Serveur indisponible…" : "Écrivez votre message…"}
               rows={1}
-              disabled={loading}
+              disabled={loading || serverStatus === 'offline'}
               aria-label="Message à envoyer"
               aria-multiline="true"
             />
             <button
               id="send-btn"
               onClick={() => sendMessage()}
-              disabled={loading || !input.trim()}
+              disabled={loading || !input.trim() || serverStatus === 'offline'}
               className="send-btn"
               aria-label="Envoyer le message"
             >
