@@ -33,7 +33,7 @@ Ask questions in French or English and get accurate answers based on Vala's offi
 | Frontend | React + Vite |
 | Backend | FastAPI + Uvicorn |
 | Scraping | BeautifulSoup + Requests |
-| Embeddings | sentence-transformers (all-MiniLM-L6-v2) |
+| Embeddings | sentence-transformers (paraphrase-multilingual-MiniLM-L12-v2) |
 | Vector DB | ChromaDB |
 | LLM | Groq |
 | Data | 220 articles from myvala.com/knowledgebase |
@@ -68,6 +68,7 @@ Ask questions in French or English and get accurate answers based on Vala's offi
 ### 4. Set up environment variables
 Create a `.env` file in the root folder:
     GROQ_API_KEY=your_groq_key_here
+    ALLOWED_ORIGINS=http://localhost:5173
 
 ### 5. Build the RAG pipeline (first time only)
     python src/rag_pipeline.py
@@ -86,7 +87,7 @@ Create a `.env` file in the root folder:
 ## How It Works
 
 1. **Scraping** — BeautifulSoup scrapes 220 articles from the Vala knowledgebase
-2. **Chunking** — Articles split into 1000-character chunks with 200-char overlap
+2. **Chunking** — Articles split into 1000-character chunks with 150-char overlap
 3. **Embedding** — Each chunk converted to a vector using sentence-transformers
 4. **Storage** — Vectors stored locally in ChromaDB
 5. **Query** — User question embedded and matched against stored vectors
