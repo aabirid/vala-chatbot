@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import axios from "axios"
+import ReactMarkdown from 'react-markdown'
 import './App.css'
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
@@ -222,7 +223,7 @@ export default function App() {
 
                 <div className="message-content">
                   <div className={`bubble ${msg.role} ${msg.isError ? "error" : ""}`}>
-                    {msg.text}
+                    <ReactMarkdown>{msg.text}</ReactMarkdown>
                   </div>
 
                   {msg.isError && msg.retryQuestion && (
